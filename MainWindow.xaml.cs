@@ -57,6 +57,11 @@ public partial class MainWindow : Window
 
     public void CleanupForExit()
     {
+        if (_isExiting)
+        {
+            return;
+        }
+
         _isExiting = true;
         _viewModel.Cleanup();
         _notifyIcon?.Dispose();

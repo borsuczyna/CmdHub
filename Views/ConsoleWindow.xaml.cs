@@ -186,6 +186,13 @@ public partial class ConsoleWindow : Window
 
             int nextEscape = text.IndexOf('\u001b', index);
             int segmentEnd = nextEscape >= 0 ? nextEscape : text.Length;
+            if (segmentEnd == index)
+            {
+                // Skip malformed or unsupported escape initiators to avoid stalling.
+                index++;
+                continue;
+            }
+
             if (segmentEnd > index)
             {
                 var run = new Run(text.Substring(index, segmentEnd - index))
