@@ -848,6 +848,75 @@ public class CommandViewModel : BaseViewModel, IDisposable
         }
     }
 
+    public bool TryCaptureProcessSnapshot(out ProcessPerformanceSnapshot snapshot)
+    {
+        snapshot = new ProcessPerformanceSnapshot();
+
+        var process = _process;
+        if (process == null)
+        {
+            return false;
+        }
+
+        try
+        {
+            if (process.HasExited)
+            {
+                return false;
+            }
+
+            process.Refresh();
+
+            snapshot = new ProcessPerformanceSnapshot
+            {
+                ProcessId = process.Id,
+                ProcessName = process.ProcessName,
+                TotalProcessorTime = process.TotalProcessorTime,
+                WorkingSetBytes = process.WorkingSet64,
+                PrivateMemoryBytes = process.PrivateMemorySize64,
+                ThreadCount = process.Threads.Count,
+                HandleCount = TryGetHandleCount(process),
+                StartTimeLocal = TryGetStartTime(process),
+                SampledAtUtc = DateTime.UtcNow
+            };
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static int? TryGetHandleCount(Process process)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return null;
+        }
+
+        try
+        {
+            return process.HandleCount;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static DateTime? TryGetStartTime(Process process)
+    {
+        try
+        {
+            return process.StartTime;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private static (string fileName, string arguments) ParseCommand(string command)
     {
         command = command.Trim();

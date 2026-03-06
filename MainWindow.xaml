@@ -284,7 +284,7 @@
                 </DataGridTemplateColumn>
 
                 <!-- Actions -->
-                <DataGridTemplateColumn Header="ACTIONS" Width="310" CanUserSort="False">
+                <DataGridTemplateColumn Header="ACTIONS" Width="370" CanUserSort="False">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0" HorizontalAlignment="Left">
@@ -306,6 +306,12 @@
                                                           RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                         CommandParameter="{Binding}"
                                         ToolTip="Open console output window"/>
+                                <Button Content="Perf"
+                                    Style="{StaticResource IconButton}"
+                                    Command="{Binding DataContext.OpenPerformanceCommand,
+                                              RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                    CommandParameter="{Binding}"
+                                    ToolTip="Open live process performance"/>
                                 <Button Content="✎"
                                         Style="{StaticResource IconButton}"
                                         Command="{Binding DataContext.EditCommandCommand,

@@ -36,6 +36,7 @@ public class MainViewModel : BaseViewModel
 
     public ICommand NewCommandCommand { get; }
     public ICommand OpenConsoleCommand { get; }
+    public ICommand OpenPerformanceCommand { get; }
     public ICommand EditCommandCommand { get; }
     public ICommand DeleteCommandCommand { get; }
 
@@ -49,6 +50,7 @@ public class MainViewModel : BaseViewModel
 
         NewCommandCommand = new RelayCommand(OpenNewCommandDialog);
         OpenConsoleCommand = new RelayCommand(p => OpenConsole(p as CommandViewModel));
+        OpenPerformanceCommand = new RelayCommand(p => OpenPerformance(p as CommandViewModel));
         EditCommandCommand = new RelayCommand(p => OpenEditDialog(p as CommandViewModel));
         DeleteCommandCommand = new RelayCommand(p => DeleteCommand(p as CommandViewModel));
 
@@ -136,6 +138,26 @@ public class MainViewModel : BaseViewModel
         {
             var consoleWindow = new ConsoleWindow(vm);
             consoleWindow.Show();
+        }
+    }
+
+    private void OpenPerformance(CommandViewModel? vm)
+    {
+        if (vm == null) return;
+
+        var existing = WpfApp.Current.Windows
+            .OfType<ProcessPerformanceWindow>()
+            .FirstOrDefault(w => w.CommandVm == vm);
+
+        if (existing != null)
+        {
+            existing.Activate();
+            existing.WindowState = WindowState.Normal;
+        }
+        else
+        {
+            var performanceWindow = new ProcessPerformanceWindow(vm);
+            performanceWindow.Show();
         }
     }
 
