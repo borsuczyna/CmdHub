@@ -107,8 +107,12 @@ public partial class ConsoleWindow : Window
         try
         {
             WpfClipboard.SetText(CommandVm.GetFullOutput());
+            TxtStatusBar.Text = $"{CommandVm.Name}  —  Copied to clipboard";
         }
-        catch { }
+        catch
+        {
+            TxtStatusBar.Text = $"{CommandVm.Name}  —  Copy failed";
+        }
     }
 
     private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

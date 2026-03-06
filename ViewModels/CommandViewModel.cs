@@ -82,14 +82,18 @@ public class CommandViewModel : BaseViewModel, IDisposable
         _ => "Stopped"
     };
 
+    private static readonly System.Windows.Media.SolidColorBrush RunningBrush =
+        new(System.Windows.Media.Color.FromRgb(0x4C, 0xAF, 0x50));
+    private static readonly System.Windows.Media.SolidColorBrush CrashedBrush =
+        new(System.Windows.Media.Color.FromRgb(0xF4, 0x43, 0x36));
+    private static readonly System.Windows.Media.SolidColorBrush StoppedBrush =
+        new(System.Windows.Media.Color.FromRgb(0x9E, 0x9E, 0x9E));
+
     public System.Windows.Media.SolidColorBrush StatusBrush => Status switch
     {
-        ProcessStatus.Running => new System.Windows.Media.SolidColorBrush(
-            System.Windows.Media.Color.FromRgb(0x4C, 0xAF, 0x50)),
-        ProcessStatus.Crashed => new System.Windows.Media.SolidColorBrush(
-            System.Windows.Media.Color.FromRgb(0xF4, 0x43, 0x36)),
-        _ => new System.Windows.Media.SolidColorBrush(
-            System.Windows.Media.Color.FromRgb(0x9E, 0x9E, 0x9E))
+        ProcessStatus.Running => RunningBrush,
+        ProcessStatus.Crashed => CrashedBrush,
+        _ => StoppedBrush
     };
 
     public bool CanStart => Status != ProcessStatus.Running;
@@ -274,7 +278,10 @@ public class CommandViewModel : BaseViewModel, IDisposable
             if (app == null) return;
             app.Dispatcher.Invoke(action);
         }
-        catch { }
+        catch
+        {
+            // Silently ignore dispatcher errors during app shutdown
+        }
     }
 
     private void AppendOutput(string text)

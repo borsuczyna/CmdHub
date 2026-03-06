@@ -67,6 +67,23 @@ public class MainViewModel : BaseViewModel
         Commands.Add(vm);
     }
 
+    private void SaveConfig()
+    {
+        _config.Commands = Commands.Select(c => c.Entry).ToList();
+        try
+        {
+            _configService.Save(_config);
+        }
+        catch (Exception ex)
+        {
+            WpfMessageBox.Show(
+                $"Could not save configuration:\n{ex.Message}",
+                "Save Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
     private void OpenNewCommandDialog()
     {
         var dialog = new EditCommandDialog();
@@ -74,8 +91,7 @@ public class MainViewModel : BaseViewModel
         {
             var vm = new CommandViewModel(dialog.ResultEntry);
             AddCommandViewModel(vm);
-            _config.Commands = Commands.Select(c => c.Entry).ToList();
-            _configService.Save(_config);
+            SaveConfig();
 
             if (dialog.ResultEntry.RunOnStart)
                 vm.Start();
@@ -93,9 +109,7 @@ public class MainViewModel : BaseViewModel
             vm.WorkingDirectory = dialog.ResultEntry.WorkingDirectory;
             vm.AutoRestart = dialog.ResultEntry.AutoRestart;
             vm.RunOnStart = dialog.ResultEntry.RunOnStart;
-
-            _config.Commands = Commands.Select(c => c.Entry).ToList();
-            _configService.Save(_config);
+            SaveConfig();
         }
     }
 
@@ -142,9 +156,7 @@ public class MainViewModel : BaseViewModel
         vm.Stop();
         vm.Dispose();
         Commands.Remove(vm);
-
-        _config.Commands = Commands.Select(c => c.Entry).ToList();
-        _configService.Save(_config);
+        SaveConfig();
 
         OnPropertyChanged(nameof(RunningCount));
     }

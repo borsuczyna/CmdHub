@@ -37,7 +37,11 @@ public class ConfigService
             Directory.CreateDirectory(ConfigDir);
             File.WriteAllText(ConfigPath, JsonSerializer.Serialize(config, JsonOptions));
         }
-        catch { }
+        catch (Exception ex)
+        {
+            // Propagate save failures so callers can notify the user if needed
+            throw new InvalidOperationException($"Failed to save configuration to {ConfigPath}", ex);
+        }
     }
 
     private static AppConfig CreateDefault() => new()
