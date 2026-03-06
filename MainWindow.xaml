@@ -6,6 +6,8 @@
         Width="960" Height="600"
         MinWidth="700" MinHeight="400"
         Background="#1E1E1E"
+    UseLayoutRounding="True"
+    SnapsToDevicePixels="True"
         Closing="Window_Closing"
         StateChanged="Window_StateChanged">
 
@@ -123,10 +125,11 @@
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="10,0"/>
-            <Setter Property="Height" Value="34"/>
+            <Setter Property="Height" Value="32"/>
             <Setter Property="BorderBrush" Value="#3C3C3C"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
             <Setter Property="SeparatorBrush" Value="#3C3C3C"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
         </Style>
 
         <Style TargetType="DataGridCell">
@@ -134,6 +137,7 @@
             <Setter Property="Foreground" Value="#CCCCCC"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Background" Value="Transparent"/>
@@ -144,7 +148,11 @@
 
         <Style TargetType="DataGridRow">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <!-- bottom border provides separator line; ensures full-pixel layout with rounding
+                 border thickness and brush must match grid's previous line color -->
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="BorderBrush" Value="#2D2D2D"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Background" Value="#094771"/>
@@ -159,10 +167,13 @@
             <Setter Property="Background" Value="#1E1E1E"/>
             <Setter Property="Foreground" Value="#CCCCCC"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="#2D2D2D"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <!-- grid lines removed in favor of row bottom border -->
+            <Setter Property="GridLinesVisibility" Value="None"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="Transparent"/>
             <Setter Property="VerticalGridLinesBrush" Value="Transparent"/>
-            <Setter Property="RowHeight" Value="46"/>
+            <Setter Property="RowHeight" Value="44"/>
             <Setter Property="AutoGenerateColumns" Value="False"/>
             <Setter Property="CanUserAddRows" Value="False"/>
             <Setter Property="CanUserDeleteRows" Value="False"/>
@@ -296,8 +307,9 @@
                 <DataGridTemplateColumn Header="ACTIONS" Width="370" CanUserSort="False">
                     <DataGridTemplateColumn.CellStyle>
                         <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
-                            <Setter Property="Padding" Value="4"/>
+                            <Setter Property="Padding" Value="0"/>
                             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
                         </Style>
                     </DataGridTemplateColumn.CellStyle>
                     <DataGridTemplateColumn.CellTemplate>
