@@ -200,13 +200,72 @@ public class CommandViewModel : BaseViewModel, IDisposable
 
     private void KillProcess()
     {
-        if (_process == null) return;
+        var process = _process;
+        if (process == null) return;
+
         try
         {
-            if (!_process.HasExited)
-                _process.Kill(entireProcessTree: true);
+            if (process.HasExited)
+            {
+                return;
+            }
+
+            try
+            {
+                process.Kill(entireProcessTree: true);
+            }
+            catch (PlatformNotSupportedException)
+            {
+                process.Kill();
+            }
+            catch (InvalidOperationException)
+            {
+                // Already exited between checks.
+                return;
+            }
+
+            // Give the process a moment to exit cleanly after kill.
+            if (!process.WaitForExit(2500))
+            {
+                TryTaskKillTree(process.Id);
+                process.WaitForExit(2500);
+            }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            AppendOutput($"[{DateTime.Now:HH:mm:ss}] [ERR] Failed to kill process: {ex.Message}\r\n");
+        }
+    }
+
+    private static void TryTaskKillTree(int pid)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            using var killer = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "taskkill",
+                    Arguments = $"/PID {pid} /T /F",
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                }
+            };
+
+            killer.Start();
+            killer.WaitForExit(3000);
+        }
+        catch
+        {
+            // Swallow fallback kill errors; primary kill attempt already happened.
+        }
     }
 
     private void OnOutputDataReceived(object sender, DataReceivedEventArgs e)
