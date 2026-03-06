@@ -11,6 +11,7 @@ It is designed for workflows where you need several long-running commands (APIs,
 - Per-command actions: Start, Stop, Restart, Open Console, Perf, Edit, Delete
 - Live output preview in a dedicated console window
 - Optional local HTTP API (enable/disable from toolbar)
+- Remote HTML control panel (on separate port)
 - Console action to send `Ctrl+C` for graceful interruption
 - Auto-restart support for crashed/exited processes
 - Run-on-start support
@@ -48,7 +49,8 @@ dotnet run --project .\CmdHub.csproj
 	 - `Use PowerShell`: run command via `powershell.exe` (useful for shell aliases/functions)
 3. Use row buttons to control each process.
 4. Click `Console` to inspect full output.
-5. Click `API: Off` in toolbar to enable local API.
+5. Click `Remote: Off` in toolbar to enable remote API + control panel.
+6. Click `Settings` to configure API port, control panel port, and control panel password.
 
 ## API Endpoints
 
@@ -59,8 +61,33 @@ When enabled, API base URL is:
 - `GET /api/health`
 - `GET /api/processes`
 - `GET /api/processes/{processId}/logs`
+- `POST /api/processes` (create command)
+- `PUT /api/processes/{processId}` (edit command)
+- `DELETE /api/processes/{processId}` (delete command)
+- `POST /api/processes/{processId}/actions/start`
+- `POST /api/processes/{processId}/actions/stop`
+- `POST /api/processes/{processId}/actions/restart`
+- `POST /api/processes/{processId}/actions/ctrlc`
+- `POST /api/processes/{processId}/actions/clear-logs`
 
 `logs` response contains `logs` as a string array (one item per log line).
+
+All endpoints (except `/api/health`) require header:
+
+- `X-CmdHub-Password: <control-panel-password>`
+
+## Control Panel
+
+Control panel URL (default):
+
+`http://<machine-ip>:5481/`
+
+The HTML panel can be opened from another device in the same network and supports:
+
+- Process list with status/usage
+- Start / Stop / Restart / Ctrl+C
+- Create / Edit / Delete command
+- Per-process logs view
 
 `logs` endpoint query options:
 
@@ -78,6 +105,8 @@ Config shape:
 {
 	"apiEnabled": false,
 	"apiPort": 5480,
+	"controlPanelPort": 5481,
+	"controlPanelPassword": "generated-random-password",
 	"commands": [
 		{
 			"id": "guid",

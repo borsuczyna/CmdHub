@@ -199,6 +199,10 @@
                             Command="{Binding ToggleApiCommand}"
                             ToolTip="{Binding ApiHintText}"
                             Margin="10,0,0,0"/>
+                        <Button Content="Settings"
+                            Style="{StaticResource ToolbarButton}"
+                            Command="{Binding OpenSettingsCommand}"
+                            Margin="10,0,0,0"/>
                 </StackPanel>
                 <TextBlock Text="{Binding RunningCount}"
                            Foreground="#858585" FontSize="12"

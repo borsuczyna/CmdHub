@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text.Json;
 using CmdHub.Models;
 
@@ -22,7 +23,23 @@ public class ConfigService
                 return CreateDefault();
 
             var json = File.ReadAllText(ConfigPath);
-            return JsonSerializer.Deserialize<AppConfig>(json, JsonOptions) ?? CreateDefault();
+            var config = JsonSerializer.Deserialize<AppConfig>(json, JsonOptions) ?? CreateDefault();
+            if (string.IsNullOrWhiteSpace(config.ControlPanelPassword))
+            {
+                config.ControlPanelPassword = GenerateRandomPassword();
+            }
+
+            if (config.ControlPanelPort <= 0)
+            {
+                config.ControlPanelPort = 5481;
+            }
+
+            if (config.ApiPort <= 0)
+            {
+                config.ApiPort = 5480;
+            }
+
+            return config;
         }
         catch
         {
@@ -48,6 +65,8 @@ public class ConfigService
     {
         ApiEnabled = false,
         ApiPort = 5480,
+        ControlPanelPort = 5481,
+        ControlPanelPassword = GenerateRandomPassword(),
         Commands = new List<CommandEntry>
         {
             new()
@@ -82,4 +101,23 @@ public class ConfigService
             }
         }
     };
+
+    public static string GenerateRandomPassword(int length = 20)
+    {
+        if (length < 12)
+        {
+            length = 12;
+        }
+
+        const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%*-_";
+        var bytes = RandomNumberGenerator.GetBytes(length);
+        var chars = new char[length];
+
+        for (int i = 0; i < length; i++)
+        {
+            chars[i] = alphabet[bytes[i] % alphabet.Length];
+        }
+
+        return new string(chars);
+    }
 }
