@@ -14,7 +14,7 @@ public partial class ConsoleWindow : Window
 {
     public CommandViewModel CommandVm { get; }
 
-    private const int MaxDisplayLines = 5000;
+    private const int MaxDisplayLines = 500;
     private int _lineCount;
     private string _pendingTailText = string.Empty;
     private Paragraph? _pendingTailParagraph;
@@ -59,7 +59,7 @@ public partial class ConsoleWindow : Window
         // Show existing output
         var existing = vm.GetFullOutput();
         if (!string.IsNullOrEmpty(existing))
-            AppendChunk(existing);
+            AppendChunk(GetTailLines(existing, MaxDisplayLines));
 
         // Subscribe to future output
         vm.OutputReceived += OnOutputReceived;
@@ -342,8 +342,33 @@ public partial class ConsoleWindow : Window
 
         if (!string.IsNullOrEmpty(snapshot))
         {
-            AppendChunk(snapshot);
+            AppendChunk(GetTailLines(snapshot, MaxDisplayLines));
         }
+    }
+
+    private static string GetTailLines(string text, int maxLines)
+    {
+        if (string.IsNullOrEmpty(text) || maxLines <= 0)
+        {
+            return string.Empty;
+        }
+
+        int seenNewlines = 0;
+        for (int i = text.Length - 1; i >= 0; i--)
+        {
+            if (text[i] != '\n')
+            {
+                continue;
+            }
+
+            seenNewlines++;
+            if (seenNewlines > maxLines)
+            {
+                return text[(i + 1)..];
+            }
+        }
+
+        return text;
     }
 
     private void BtnStart_Click(object sender, RoutedEventArgs e)
