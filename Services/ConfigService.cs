@@ -54,7 +54,8 @@ public class ConfigService
                 Command = "ping -t 127.0.0.1",
                 WorkingDirectory = string.Empty,
                 AutoRestart = true,
-                RunOnStart = false
+                RunOnStart = false,
+                UsePowerShell = false
             },
             new()
             {
@@ -62,7 +63,8 @@ public class ConfigService
                 Command = "cmd /c systeminfo",
                 WorkingDirectory = string.Empty,
                 AutoRestart = false,
-                RunOnStart = false
+                RunOnStart = false,
+                UsePowerShell = false
             }
         }
     };

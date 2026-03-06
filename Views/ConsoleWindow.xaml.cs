@@ -157,12 +157,9 @@ public partial class ConsoleWindow : Window
             _lastNonEmptyLineBrush = fallbackBrush;
         }
 
-        if (_showTimestamps && !string.IsNullOrWhiteSpace(line) && !HasLeadingTimestamp(line))
-        {
-            paragraph.Inlines.Add(new Run($"[{DateTime.Now:HH:mm:ss}] ") { Foreground = DebugBrush });
-        }
+        string displayLine = _showTimestamps ? line : StripLeadingTimestamp(line);
 
-        BuildAnsiRuns(paragraph, line, fallbackBrush);
+        BuildAnsiRuns(paragraph, displayLine, fallbackBrush);
 
         if (paragraph.Inlines.FirstInline == null)
         {
@@ -250,7 +247,7 @@ public partial class ConsoleWindow : Window
             return previousBrush;
         }
 
-        string trimmed = line.TrimStart();
+        string trimmed = StripLeadingTimestamp(line.TrimStart());
 
         if (trimmed.StartsWith("[ERR]", StringComparison.OrdinalIgnoreCase) ||
             trimmed.StartsWith("error:", StringComparison.OrdinalIgnoreCase) ||
@@ -306,6 +303,21 @@ public partial class ConsoleWindow : Window
                char.IsDigit(line[7]) &&
                char.IsDigit(line[8]) &&
                line[9] == ']';
+    }
+
+    private static string StripLeadingTimestamp(string line)
+    {
+        if (!HasLeadingTimestamp(line))
+        {
+            return line;
+        }
+
+        if (line.Length > 10 && line[10] == ' ')
+        {
+            return line[11..];
+        }
+
+        return line[10..];
     }
 
     private void UpdateTimestampButtonText()

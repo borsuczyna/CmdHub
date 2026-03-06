@@ -109,6 +109,7 @@ public class MainViewModel : BaseViewModel
             vm.WorkingDirectory = dialog.ResultEntry.WorkingDirectory;
             vm.AutoRestart = dialog.ResultEntry.AutoRestart;
             vm.RunOnStart = dialog.ResultEntry.RunOnStart;
+            vm.UsePowerShell = dialog.ResultEntry.UsePowerShell;
             SaveConfig();
         }
     }

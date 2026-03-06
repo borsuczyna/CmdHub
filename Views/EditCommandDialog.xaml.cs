@@ -20,6 +20,7 @@ public partial class EditCommandDialog : Window
             TxtWorkDir.Text = existing.WorkingDirectory;
             ChkAutoRestart.IsChecked = existing.AutoRestart;
             ChkRunOnStart.IsChecked = existing.RunOnStart;
+            ChkUsePowerShell.IsChecked = existing.UsePowerShell;
         }
         else
         {
@@ -62,7 +63,8 @@ public partial class EditCommandDialog : Window
             Command = TxtCommand.Text.Trim(),
             WorkingDirectory = TxtWorkDir.Text.Trim(),
             AutoRestart = ChkAutoRestart.IsChecked == true,
-            RunOnStart = ChkRunOnStart.IsChecked == true
+            RunOnStart = ChkRunOnStart.IsChecked == true,
+            UsePowerShell = ChkUsePowerShell.IsChecked == true
         };
 
         DialogResult = true;

@@ -42,6 +42,7 @@ dotnet run --project .\CmdHub.csproj
 	 - `Working Directory`: optional start directory
 	 - `Auto Restart`: restart after unexpected exit
 	 - `Run On Start`: start automatically when CmdHub launches
+	 - `Use PowerShell`: run command via `powershell.exe` (useful for shell aliases/functions)
 3. Use row buttons to control each process.
 4. Click `Console` to inspect full output.
 
@@ -60,7 +61,8 @@ Command entry shape:
 	"command": "dotnet run --project MyApi.csproj",
 	"workingDirectory": "C:\\path\\to\\project",
 	"autoRestart": true,
-	"runOnStart": false
+	"runOnStart": false,
+	"usePowerShell": false
 }
 ```
 
@@ -82,6 +84,7 @@ dotnet build .\CmdHub.sln
 - Command does not start:
 	- Verify executable exists in `PATH` or provide full path.
 	- Verify `Working Directory` is valid.
+	- For shell-specific commands/aliases, enable `Use PowerShell`.
 	- Open `Console` for error output.
 
 ## Project Structure

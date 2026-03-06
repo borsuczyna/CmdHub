@@ -10,4 +10,5 @@ public class CommandEntry
     public string WorkingDirectory { get; set; } = string.Empty;
     public bool AutoRestart { get; set; }
     public bool RunOnStart { get; set; }
+    public bool UsePowerShell { get; set; }
 }

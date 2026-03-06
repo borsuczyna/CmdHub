@@ -159,10 +159,17 @@
                       VerticalContentAlignment="Center"
                       Margin="0,0,24,0"/>
             <CheckBox x:Name="ChkRunOnStart"
-                      Content="Start automatically on launch"
+                      Content="Autostart"
                       Foreground="#CCCCCC"
                       FontSize="13"
-                      VerticalContentAlignment="Center"/>
+                      VerticalContentAlignment="Center"
+                      Margin="0,0,24,0"/>
+            <CheckBox x:Name="ChkUsePowerShell"
+                      Content="Use PowerShell"
+                      Foreground="#CCCCCC"
+                      FontSize="13"
+                      VerticalContentAlignment="Center"
+                      ToolTip="Run this command through powershell.exe so shell commands and aliases work."/>
         </StackPanel>
 
         <!-- Buttons -->

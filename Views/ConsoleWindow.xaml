@@ -79,6 +79,12 @@
                         Style="{StaticResource ToolBtn}"
                         Margin="2,0"
                         Click="BtnCopyAll_Click"/>
+
+                <Button x:Name="BtnTimestamp"
+                    Content="Timestamps: Off"
+                    Style="{StaticResource ToolBtn}"
+                    Margin="8,0,2,0"
+                    Click="BtnTimestamp_Click"/>
             </StackPanel>
         </Border>
 

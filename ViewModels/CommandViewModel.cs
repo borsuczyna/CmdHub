@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -58,6 +59,12 @@ public class CommandViewModel : BaseViewModel, IDisposable
     {
         get => Entry.RunOnStart;
         set { Entry.RunOnStart = value; OnPropertyChanged(); }
+    }
+
+    public bool UsePowerShell
+    {
+        get => Entry.UsePowerShell;
+        set { Entry.UsePowerShell = value; OnPropertyChanged(); }
     }
 
     public ProcessStatus Status
@@ -128,28 +135,18 @@ public class CommandViewModel : BaseViewModel, IDisposable
     {
         try
         {
-            var parsed = ParseCommand(Entry.Command);
-            if (string.IsNullOrEmpty(parsed.fileName))
-            {
-                AppendOutput("[CmdHub] Error: Empty command.\r\n");
-                return;
-            }
-
             var workDir = string.IsNullOrWhiteSpace(Entry.WorkingDirectory)
                 ? Environment.CurrentDirectory
                 : Entry.WorkingDirectory;
 
-            var psi = new ProcessStartInfo
+            if (!Directory.Exists(workDir))
             {
-                FileName = parsed.fileName,
-                Arguments = parsed.arguments,
-                WorkingDirectory = workDir,
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                RedirectStandardInput = true,
-            };
+                Status = ProcessStatus.Crashed;
+                AppendOutput($"[{DateTime.Now:HH:mm:ss}] [ERR] Invalid working directory: {workDir}\r\n");
+                return;
+            }
+
+            var psi = BuildProcessStartInfo(Entry.Command, workDir, Entry.UsePowerShell);
 
             _process = new Process { StartInfo = psi, EnableRaisingEvents = true };
             _process.OutputDataReceived += OnOutputDataReceived;
@@ -271,13 +268,13 @@ public class CommandViewModel : BaseViewModel, IDisposable
     private void OnOutputDataReceived(object sender, DataReceivedEventArgs e)
     {
         if (e.Data != null)
-            AppendOutput(e.Data + "\r\n");
+            AppendOutput($"[{DateTime.Now:HH:mm:ss}] {e.Data}\r\n");
     }
 
     private void OnErrorDataReceived(object sender, DataReceivedEventArgs e)
     {
         if (e.Data != null)
-            AppendOutput("[ERR] " + e.Data + "\r\n");
+            AppendOutput($"[{DateTime.Now:HH:mm:ss}] [ERR] {e.Data}\r\n");
     }
 
     private void OnProcessExited(object? sender, EventArgs e)
@@ -393,6 +390,139 @@ public class CommandViewModel : BaseViewModel, IDisposable
             if (spaceIdx < 0) return (command, string.Empty);
             return (command[..spaceIdx], command[(spaceIdx + 1)..].Trim());
         }
+    }
+
+    private static ProcessStartInfo BuildProcessStartInfo(string rawCommand, string workingDirectory, bool usePowerShell)
+    {
+        var parsed = ParseCommand(rawCommand);
+        if (string.IsNullOrWhiteSpace(parsed.fileName))
+        {
+            throw new InvalidOperationException("Empty command.");
+        }
+
+        if (usePowerShell && OperatingSystem.IsWindows())
+        {
+            return CreateStartInfo(
+                "powershell.exe",
+                $"-NoLogo -NoProfile -ExecutionPolicy Bypass -Command \"{EscapeForPowerShell(rawCommand)}\"",
+                workingDirectory);
+        }
+
+        string fileName = parsed.fileName;
+        string arguments = parsed.arguments;
+
+        if (OperatingSystem.IsWindows())
+        {
+            string? resolved = ResolveWindowsCommand(fileName, workingDirectory);
+            if (!string.IsNullOrEmpty(resolved))
+            {
+                fileName = resolved;
+            }
+
+            var extension = Path.GetExtension(fileName);
+            if (extension.Equals(".cmd", StringComparison.OrdinalIgnoreCase) ||
+                extension.Equals(".bat", StringComparison.OrdinalIgnoreCase))
+            {
+                string inner = QuoteForCmd(fileName);
+                if (!string.IsNullOrWhiteSpace(arguments))
+                {
+                    inner += " " + arguments;
+                }
+
+                return CreateStartInfo("cmd.exe", $"/d /s /c \"{inner}\"", workingDirectory);
+            }
+        }
+
+        return CreateStartInfo(fileName, arguments, workingDirectory);
+    }
+
+    private static ProcessStartInfo CreateStartInfo(string fileName, string arguments, string workingDirectory)
+        => new()
+        {
+            FileName = fileName,
+            Arguments = arguments,
+            WorkingDirectory = workingDirectory,
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            RedirectStandardInput = true,
+            // Most modern CLIs (npm/vite/dotnet) emit UTF-8; force UTF-8 decode to avoid mojibake.
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
+        };
+
+    private static string EscapeForPowerShell(string command)
+        => command.Replace("`", "``").Replace("\"", "`\"");
+
+    private static string QuoteForCmd(string value)
+        => value.Contains(' ') ? $"\"{value}\"" : value;
+
+    private static string? ResolveWindowsCommand(string fileName, string workingDirectory)
+    {
+        if (!OperatingSystem.IsWindows() || string.IsNullOrWhiteSpace(fileName))
+        {
+            return null;
+        }
+
+        var pathExt = Environment.GetEnvironmentVariable("PATHEXT");
+        var extensions = string.IsNullOrWhiteSpace(pathExt)
+            ? new[] { ".COM", ".EXE", ".BAT", ".CMD" }
+            : pathExt.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        bool hasExtension = !string.IsNullOrEmpty(Path.GetExtension(fileName));
+        bool hasDirectoryPart = Path.IsPathRooted(fileName) ||
+            fileName.Contains(Path.DirectorySeparatorChar) ||
+            fileName.Contains(Path.AltDirectorySeparatorChar);
+
+        if (hasDirectoryPart)
+        {
+            var candidateBase = Path.IsPathRooted(fileName) ? fileName : Path.Combine(workingDirectory, fileName);
+            if (hasExtension && File.Exists(candidateBase))
+            {
+                return candidateBase;
+            }
+
+            if (!hasExtension)
+            {
+                foreach (var ext in extensions)
+                {
+                    var candidate = candidateBase + ext.ToLowerInvariant();
+                    if (File.Exists(candidate))
+                    {
+                        return candidate;
+                    }
+
+                    candidate = candidateBase + ext.ToUpperInvariant();
+                    if (File.Exists(candidate))
+                    {
+                        return candidate;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        if (hasExtension)
+        {
+            return fileName;
+        }
+
+        var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+        foreach (var dir in path.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            foreach (var ext in extensions)
+            {
+                var candidate = Path.Combine(dir, fileName + ext);
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+        }
+
+        return null;
     }
 
     public void Dispose()
