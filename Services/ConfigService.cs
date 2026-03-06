@@ -55,7 +55,13 @@ public class ConfigService
                 WorkingDirectory = string.Empty,
                 AutoRestart = true,
                 RunOnStart = false,
-                UsePowerShell = false
+                UsePowerShell = false,
+                RunEveryEnabled = false,
+                RunEveryInterval = 5,
+                RunEveryUnit = "minutes",
+                RestartEveryEnabled = false,
+                RestartEveryInterval = 5,
+                RestartEveryUnit = "minutes"
             },
             new()
             {
@@ -64,7 +70,13 @@ public class ConfigService
                 WorkingDirectory = string.Empty,
                 AutoRestart = false,
                 RunOnStart = false,
-                UsePowerShell = false
+                UsePowerShell = false,
+                RunEveryEnabled = false,
+                RunEveryInterval = 5,
+                RunEveryUnit = "minutes",
+                RestartEveryEnabled = false,
+                RestartEveryInterval = 5,
+                RestartEveryUnit = "minutes"
             }
         }
     };

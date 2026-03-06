@@ -2,8 +2,9 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Command Configuration"
-        Width="520" Height="400"
+        Width="520" Height="450"
         MinWidth="440" MinHeight="360"
+    SizeToContent="Manual"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResize"
         Background="#1E1E1E"
@@ -98,8 +99,107 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="FormComboBox" TargetType="ComboBox">
+            <Setter Property="Background" Value="#3C3C3C"/>
+            <Setter Property="Foreground" Value="#CCCCCC"/>
+            <Setter Property="BorderBrush" Value="#555555"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                          BorderThickness="{TemplateBinding BorderThickness}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="24"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Margin="8,0,0,0"
+                                                      VerticalAlignment="Center"
+                                                      HorizontalAlignment="Left"
+                                                      TextElement.Foreground="{TemplateBinding Foreground}"
+                                                      Content="{TemplateBinding SelectionBoxItem}"
+                                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                      ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
+                                    <Path Grid.Column="1"
+                                          VerticalAlignment="Center"
+                                          HorizontalAlignment="Center"
+                                          Fill="#CCCCCC"
+                                          Data="M 0 0 L 4 4 L 8 0 Z"/>
+                                </Grid>
+                            </ToggleButton>
+
+                            <Popup x:Name="Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Fade">
+                                <Border Background="#2D2D2D"
+                                        BorderBrush="#555555"
+                                        BorderThickness="1"
+                                        SnapsToDevicePixels="True">
+                                    <ScrollViewer SnapsToDevicePixels="True" MaxHeight="220">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="#CCCCCC"/>
+            <Setter Property="Background" Value="#2D2D2D"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemBorder" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#3E3E3E"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#007ACC"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CompactTextBox" TargetType="TextBox" BasedOn="{StaticResource FormTextBox}">
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style x:Key="OptionCheck" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#CCCCCC"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
     </Window.Resources>
 
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -154,23 +254,91 @@
         <StackPanel Grid.Row="6" Orientation="Horizontal">
             <CheckBox x:Name="ChkAutoRestart"
                       Content="Auto-restart on exit"
-                      Foreground="#CCCCCC"
-                      FontSize="13"
-                      VerticalContentAlignment="Center"
+                      Style="{StaticResource OptionCheck}"
                       Margin="0,0,24,0"/>
             <CheckBox x:Name="ChkRunOnStart"
                       Content="Autostart"
-                      Foreground="#CCCCCC"
-                      FontSize="13"
-                      VerticalContentAlignment="Center"
+                      Style="{StaticResource OptionCheck}"
                       Margin="0,0,24,0"/>
             <CheckBox x:Name="ChkUsePowerShell"
                       Content="Use PowerShell"
-                      Foreground="#CCCCCC"
-                      FontSize="13"
-                      VerticalContentAlignment="Center"
+                      Style="{StaticResource OptionCheck}"
                       ToolTip="Run this command through powershell.exe so shell commands and aliases work."/>
         </StackPanel>
+
+        <Expander Grid.Row="7"
+                  Header="Advanced options"
+                  Foreground="#CCCCCC"
+                  Background="#2D2D2D"
+                  BorderBrush="#3C3C3C"
+                  BorderThickness="1"
+                  Padding="8"
+                  Margin="0,16,0,0"
+                  VerticalAlignment="Top">
+            <StackPanel Margin="8,6,8,6">
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="74"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="120"/>
+                    </Grid.ColumnDefinitions>
+
+                    <CheckBox x:Name="ChkRunEvery"
+                              Grid.Column="0"
+                              Content="Run every"
+                              Style="{StaticResource OptionCheck}"
+                              VerticalAlignment="Center"/>
+                    <TextBox x:Name="TxtRunEveryValue"
+                             Grid.Column="2"
+                             Style="{StaticResource CompactTextBox}"
+                             Text="5"
+                             VerticalAlignment="Center"
+                             ToolTip="Interval value"/>
+                    <ComboBox x:Name="CmbRunEveryUnit"
+                              Grid.Column="4"
+                              Style="{StaticResource FormComboBox}"
+                              SelectedIndex="1"
+                              VerticalAlignment="Center">
+                        <ComboBoxItem Content="seconds"/>
+                        <ComboBoxItem Content="minutes"/>
+                        <ComboBoxItem Content="hours"/>
+                    </ComboBox>
+                </Grid>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="74"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="120"/>
+                    </Grid.ColumnDefinitions>
+
+                    <CheckBox x:Name="ChkRestartEvery"
+                              Grid.Column="0"
+                              Content="Restart every"
+                              Style="{StaticResource OptionCheck}"
+                              VerticalAlignment="Center"/>
+                    <TextBox x:Name="TxtRestartEveryValue"
+                             Grid.Column="2"
+                             Style="{StaticResource CompactTextBox}"
+                             Text="5"
+                             VerticalAlignment="Center"
+                             ToolTip="Interval value"/>
+                    <ComboBox x:Name="CmbRestartEveryUnit"
+                              Grid.Column="4"
+                              Style="{StaticResource FormComboBox}"
+                              SelectedIndex="1"
+                              VerticalAlignment="Center">
+                        <ComboBoxItem Content="seconds"/>
+                        <ComboBoxItem Content="minutes"/>
+                        <ComboBoxItem Content="hours"/>
+                    </ComboBox>
+                </Grid>
+            </StackPanel>
+        </Expander>
 
         <!-- Buttons -->
         <StackPanel Grid.Row="8" Orientation="Horizontal" HorizontalAlignment="Right">
@@ -188,4 +356,5 @@
                     Click="BtnSave_Click"/>
         </StackPanel>
     </Grid>
+    </ScrollViewer>
 </Window>

@@ -27,6 +27,8 @@ public class CommandViewModel : BaseViewModel, IDisposable
     private bool _restarting;
     private bool _disposed;
     private CancellationTokenSource? _restartCts;
+    private CancellationTokenSource? _runEveryCts;
+    private CancellationTokenSource? _restartEveryCts;
     private readonly StringBuilder _outputBuffer = new();
     private readonly object _outputLock = new();
     private const int MaxOutputLength = 500_000;
@@ -67,6 +69,72 @@ public class CommandViewModel : BaseViewModel, IDisposable
     {
         get => Entry.UsePowerShell;
         set { Entry.UsePowerShell = value; OnPropertyChanged(); }
+    }
+
+    public bool RunEveryEnabled
+    {
+        get => Entry.RunEveryEnabled;
+        set
+        {
+            Entry.RunEveryEnabled = value;
+            OnPropertyChanged();
+            RestartScheduleLoops();
+        }
+    }
+
+    public int RunEveryInterval
+    {
+        get => Entry.RunEveryInterval;
+        set
+        {
+            Entry.RunEveryInterval = value;
+            OnPropertyChanged();
+            RestartScheduleLoops();
+        }
+    }
+
+    public string RunEveryUnit
+    {
+        get => Entry.RunEveryUnit;
+        set
+        {
+            Entry.RunEveryUnit = value;
+            OnPropertyChanged();
+            RestartScheduleLoops();
+        }
+    }
+
+    public bool RestartEveryEnabled
+    {
+        get => Entry.RestartEveryEnabled;
+        set
+        {
+            Entry.RestartEveryEnabled = value;
+            OnPropertyChanged();
+            RestartScheduleLoops();
+        }
+    }
+
+    public int RestartEveryInterval
+    {
+        get => Entry.RestartEveryInterval;
+        set
+        {
+            Entry.RestartEveryInterval = value;
+            OnPropertyChanged();
+            RestartScheduleLoops();
+        }
+    }
+
+    public string RestartEveryUnit
+    {
+        get => Entry.RestartEveryUnit;
+        set
+        {
+            Entry.RestartEveryUnit = value;
+            OnPropertyChanged();
+            RestartScheduleLoops();
+        }
     }
 
     public ProcessStatus Status
@@ -120,6 +188,117 @@ public class CommandViewModel : BaseViewModel, IDisposable
         StartCommand = new RelayCommand(() => Start(), () => CanStart);
         StopCommand = new RelayCommand(() => Stop(), () => CanStop);
         RestartCommand = new RelayCommand(() => Restart());
+        RestartScheduleLoops();
+    }
+
+    private void RestartScheduleLoops()
+    {
+        _runEveryCts?.Cancel();
+        _runEveryCts?.Dispose();
+        _runEveryCts = null;
+
+        _restartEveryCts?.Cancel();
+        _restartEveryCts?.Dispose();
+        _restartEveryCts = null;
+
+        if (_disposed)
+        {
+            return;
+        }
+
+        var runEvery = TryGetInterval(RunEveryInterval, RunEveryUnit);
+        if (RunEveryEnabled && runEvery.HasValue)
+        {
+            _runEveryCts = new CancellationTokenSource();
+            _ = Task.Run(() => RunEveryLoopAsync(runEvery.Value, _runEveryCts.Token));
+        }
+
+        var restartEvery = TryGetInterval(RestartEveryInterval, RestartEveryUnit);
+        if (RestartEveryEnabled && restartEvery.HasValue)
+        {
+            _restartEveryCts = new CancellationTokenSource();
+            _ = Task.Run(() => RestartEveryLoopAsync(restartEvery.Value, _restartEveryCts.Token));
+        }
+    }
+
+    private static TimeSpan? TryGetInterval(int value, string? unit)
+    {
+        if (value <= 0)
+        {
+            return null;
+        }
+
+        return (unit ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "second" or "seconds" => TimeSpan.FromSeconds(value),
+            "minute" or "minutes" => TimeSpan.FromMinutes(value),
+            "hour" or "hours" => TimeSpan.FromHours(value),
+            _ => null
+        };
+    }
+
+    private async Task RunEveryLoopAsync(TimeSpan interval, CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                await Task.Delay(interval, token);
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                SafeDispatch(() =>
+                {
+                    if (token.IsCancellationRequested)
+                    {
+                        return;
+                    }
+
+                    if (Status != ProcessStatus.Running)
+                    {
+                        Start();
+                    }
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when settings change or VM is disposed.
+        }
+    }
+
+    private async Task RestartEveryLoopAsync(TimeSpan interval, CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                await Task.Delay(interval, token);
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                SafeDispatch(() =>
+                {
+                    if (token.IsCancellationRequested)
+                    {
+                        return;
+                    }
+
+                    if (Status == ProcessStatus.Running)
+                    {
+                        Restart();
+                    }
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when settings change or VM is disposed.
+        }
     }
 
     public void Start()
@@ -426,6 +605,7 @@ public class CommandViewModel : BaseViewModel, IDisposable
                 if (!p.WaitForExit(1500))
                 {
                     TryTaskKillTree(pid);
+                    TryPowerShellStopProcess(pid);
                 }
             }
             catch
@@ -522,10 +702,44 @@ public class CommandViewModel : BaseViewModel, IDisposable
 
             killer.Start();
             killer.WaitForExit(3000);
+
+            // Extra fallback for cases where taskkill does not terminate wrapper/child reliably.
+            TryPowerShellStopProcess(pid);
         }
         catch
         {
             // Swallow fallback kill errors; primary kill attempt already happened.
+        }
+    }
+
+    private static void TryPowerShellStopProcess(int pid)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            using var killer = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"Stop-Process -Id {pid} -Force -ErrorAction SilentlyContinue\"",
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                }
+            };
+
+            killer.Start();
+            killer.WaitForExit(3000);
+        }
+        catch
+        {
+            // Best effort fallback only.
         }
     }
 
@@ -795,6 +1009,10 @@ public class CommandViewModel : BaseViewModel, IDisposable
         _disposed = true;
         _restartCts?.Cancel();
         _restartCts?.Dispose();
+        _runEveryCts?.Cancel();
+        _runEveryCts?.Dispose();
+        _restartEveryCts?.Cancel();
+        _restartEveryCts?.Dispose();
         KillProcess();
         _process?.Dispose();
     }

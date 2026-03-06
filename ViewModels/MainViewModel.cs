@@ -110,6 +110,12 @@ public class MainViewModel : BaseViewModel
             vm.AutoRestart = dialog.ResultEntry.AutoRestart;
             vm.RunOnStart = dialog.ResultEntry.RunOnStart;
             vm.UsePowerShell = dialog.ResultEntry.UsePowerShell;
+            vm.RunEveryEnabled = dialog.ResultEntry.RunEveryEnabled;
+            vm.RunEveryInterval = dialog.ResultEntry.RunEveryInterval;
+            vm.RunEveryUnit = dialog.ResultEntry.RunEveryUnit;
+            vm.RestartEveryEnabled = dialog.ResultEntry.RestartEveryEnabled;
+            vm.RestartEveryInterval = dialog.ResultEntry.RestartEveryInterval;
+            vm.RestartEveryUnit = dialog.ResultEntry.RestartEveryUnit;
             SaveConfig();
         }
     }
