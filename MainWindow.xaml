@@ -295,7 +295,7 @@
                 <!-- Actions -->
                 <DataGridTemplateColumn Header="ACTIONS" Width="370" CanUserSort="False">
                     <DataGridTemplateColumn.CellStyle>
-                        <Style TargetType="DataGridCell">
+                        <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
                             <Setter Property="Padding" Value="4"/>
                             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                         </Style>
