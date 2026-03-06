@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Windows.Media.Imaging;
 using System.Windows;
 using System.Windows.Forms;
 using CmdHub.Services;
@@ -12,12 +13,19 @@ public partial class MainWindow : Window
     private readonly MainViewModel _viewModel;
     private NotifyIcon? _notifyIcon;
     private bool _isExiting;
+    private System.Drawing.Icon? _appIcon;
 
     public MainWindow()
     {
         InitializeComponent();
         _viewModel = new MainViewModel(new ConfigService());
         DataContext = _viewModel;
+
+        _appIcon = TryLoadAppIcon();
+        if (_appIcon != null)
+        {
+            Icon = BitmapFrame.Create(new Uri(IconPath, UriKind.Absolute));
+        }
 
         InitializeTrayIcon();
     }
@@ -26,7 +34,7 @@ public partial class MainWindow : Window
     {
         _notifyIcon = new NotifyIcon
         {
-            Icon = System.Drawing.SystemIcons.Application,
+            Icon = _appIcon ?? System.Drawing.SystemIcons.Application,
             Text = "CmdHub — Multi-Console Manager",
             Visible = true
         };
@@ -60,6 +68,26 @@ public partial class MainWindow : Window
         _isExiting = true;
         _viewModel.Cleanup();
         _notifyIcon?.Dispose();
+        _appIcon?.Dispose();
+    }
+
+    private static string IconPath => System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico");
+
+    private static System.Drawing.Icon? TryLoadAppIcon()
+    {
+        try
+        {
+            if (!System.IO.File.Exists(IconPath))
+            {
+                return null;
+            }
+
+            return new System.Drawing.Icon(IconPath);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
