@@ -19,6 +19,7 @@ public partial class ConsoleWindow : Window
     private string _pendingTailText = string.Empty;
     private Paragraph? _pendingTailParagraph;
     private WpfBrush _lastNonEmptyLineBrush = DefaultOutputBrush;
+    private bool _showTimestamps;
 
     private static readonly SolidColorBrush DefaultOutputBrush = CreateBrush(0xCC, 0xCC, 0xCC);
     private static readonly SolidColorBrush ErrorBrush = CreateBrush(0xFF, 0x6B, 0x6B);
@@ -52,7 +53,8 @@ public partial class ConsoleWindow : Window
         CommandVm = vm;
         Title = $"{vm.Name} — Console";
 
-        OutputBox.Document.Blocks.Clear();
+        ResetOutputRenderState();
+        UpdateTimestampButtonText();
 
         // Show existing output
         var existing = vm.GetFullOutput();
@@ -153,6 +155,11 @@ public partial class ConsoleWindow : Window
         if (!string.IsNullOrWhiteSpace(line))
         {
             _lastNonEmptyLineBrush = fallbackBrush;
+        }
+
+        if (_showTimestamps && !string.IsNullOrWhiteSpace(line) && !HasLeadingTimestamp(line))
+        {
+            paragraph.Inlines.Add(new Run($"[{DateTime.Now:HH:mm:ss}] ") { Foreground = DebugBrush });
         }
 
         BuildAnsiRuns(paragraph, line, fallbackBrush);
@@ -281,6 +288,51 @@ public partial class ConsoleWindow : Window
         return brush;
     }
 
+    private static bool HasLeadingTimestamp(string line)
+    {
+        if (line.Length < 10)
+        {
+            return false;
+        }
+
+        // Match [HH:mm:ss] prefix.
+        return line[0] == '[' &&
+               char.IsDigit(line[1]) &&
+               char.IsDigit(line[2]) &&
+               line[3] == ':' &&
+               char.IsDigit(line[4]) &&
+               char.IsDigit(line[5]) &&
+               line[6] == ':' &&
+               char.IsDigit(line[7]) &&
+               char.IsDigit(line[8]) &&
+               line[9] == ']';
+    }
+
+    private void UpdateTimestampButtonText()
+    {
+        BtnTimestamp.Content = _showTimestamps ? "Timestamps: On" : "Timestamps: Off";
+    }
+
+    private void ResetOutputRenderState()
+    {
+        OutputBox.Document.Blocks.Clear();
+        _lineCount = 0;
+        _pendingTailText = string.Empty;
+        _pendingTailParagraph = null;
+        _lastNonEmptyLineBrush = DefaultOutputBrush;
+    }
+
+    private void RerenderOutput()
+    {
+        var snapshot = CommandVm.GetFullOutput();
+        ResetOutputRenderState();
+
+        if (!string.IsNullOrEmpty(snapshot))
+        {
+            AppendChunk(snapshot);
+        }
+    }
+
     private void BtnStart_Click(object sender, RoutedEventArgs e)
         => CommandVm.Start();
 
@@ -292,11 +344,7 @@ public partial class ConsoleWindow : Window
 
     private void BtnClear_Click(object sender, RoutedEventArgs e)
     {
-        OutputBox.Document.Blocks.Clear();
-        _lineCount = 0;
-        _pendingTailText = string.Empty;
-        _pendingTailParagraph = null;
-        _lastNonEmptyLineBrush = DefaultOutputBrush;
+        ResetOutputRenderState();
         CommandVm.ClearOutput();
     }
 
@@ -311,6 +359,13 @@ public partial class ConsoleWindow : Window
         {
             TxtStatusBar.Text = $"{CommandVm.Name}  —  Copy failed";
         }
+    }
+
+    private void BtnTimestamp_Click(object sender, RoutedEventArgs e)
+    {
+        _showTimestamps = !_showTimestamps;
+        UpdateTimestampButtonText();
+        RerenderOutput();
     }
 
     private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
