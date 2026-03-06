@@ -11,10 +11,33 @@
     <AssemblyName>CmdHub</AssemblyName>
     <Platforms>x64;x86;AnyCPU</Platforms>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <FrontendRoot>$(MSBuildProjectDirectory)\frontend</FrontendRoot>
+    <FrontendArchivePath>$(MSBuildProjectDirectory)\frontend\frontend-assets.zip</FrontendArchivePath>
+    <FrontendGeneratedSource>$(IntermediateOutputPath)FrontendBundle.g.cs</FrontendGeneratedSource>
   </PropertyGroup>
 
   <ItemGroup>
     <None Update="Assets\app.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="FrontendBundle.g.cs" />
+  </ItemGroup>
+
+  <Target Name="RestoreFrontendDependencies"
+      Condition="'$(DesignTimeBuild)' != 'true' and Exists('$(FrontendRoot)\package.json') and !Exists('$(FrontendRoot)\node_modules')">
+    <Exec WorkingDirectory="$(FrontendRoot)" Command="npm install" />
+  </Target>
+
+  <Target Name="BuildFrontendAssets"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="RestoreFrontendDependencies"
+        Condition="'$(DesignTimeBuild)' != 'true' and Exists('$(FrontendRoot)\package.json')">
+    <Exec WorkingDirectory="$(FrontendRoot)" Command="npm run build" />
+      <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(FrontendRoot)\build-embed.ps1&quot; -FrontendRoot &quot;$(FrontendRoot)&quot; -ArchivePath &quot;$(FrontendArchivePath)&quot; -GeneratedSource &quot;$(FrontendGeneratedSource)&quot;" />
+    <ItemGroup>
+      <Compile Include="$(FrontendGeneratedSource)" />
+    </ItemGroup>
+  </Target>
 
 </Project>

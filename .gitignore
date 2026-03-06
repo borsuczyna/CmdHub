@@ -22,3 +22,10 @@ packages/
 
 # Windows
 Thumbs.db
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/frontend-assets.zip
+frontend-assets.zip
+FrontendBundle.g.cs

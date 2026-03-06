@@ -12,6 +12,8 @@ It is designed for workflows where you need several long-running commands (APIs,
 - Live output preview in a dedicated console window
 - Optional local HTTP API (enable/disable from toolbar)
 - Remote HTML control panel (on separate port)
+- React-based control panel UI (componentized, modern layout)
+- Frontend build pipeline: React is compiled during `dotnet build` and embedded in the app assembly
 - Console action to send `Ctrl+C` for graceful interruption
 - Auto-restart support for crashed/exited processes
 - Run-on-start support
@@ -27,6 +29,7 @@ It is designed for workflows where you need several long-running commands (APIs,
 
 - Windows
 - .NET SDK 8.0+
+- Node.js + npm (for control panel frontend build)
 
 ## Build And Run
 
