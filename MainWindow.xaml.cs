@@ -51,10 +51,15 @@ public partial class MainWindow : Window
 
     private void ExitApplication()
     {
+        CleanupForExit();
+        System.Windows.Application.Current.Shutdown();
+    }
+
+    public void CleanupForExit()
+    {
         _isExiting = true;
         _viewModel.Cleanup();
         _notifyIcon?.Dispose();
-        System.Windows.Application.Current.Shutdown();
     }
 
     private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

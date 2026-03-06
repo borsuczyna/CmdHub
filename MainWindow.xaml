@@ -284,10 +284,10 @@
                 </DataGridTemplateColumn>
 
                 <!-- Actions -->
-                <DataGridTemplateColumn Header="ACTIONS" Width="260" CanUserSort="False">
+                <DataGridTemplateColumn Header="ACTIONS" Width="310" CanUserSort="False">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0" HorizontalAlignment="Left">
                                 <Button Content="▶ Start"
                                         Style="{StaticResource StartIconButton}"
                                         Command="{Binding StartCommand}"
