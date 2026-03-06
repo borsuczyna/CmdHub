@@ -1,6 +1,7 @@
 # Build outputs
 bin/
 obj/
+output/
 
 # Visual Studio files
 *.user

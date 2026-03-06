@@ -8,7 +8,9 @@ It is designed for workflows where you need several long-running commands (APIs,
 
 - Manage multiple commands in one UI
 - Per-command actions: Start, Stop, Restart, Open Console, Edit, Delete
+- Per-command actions: Start, Stop, Restart, Open Console, Perf, Edit, Delete
 - Live output preview in a dedicated console window
+- Optional local HTTP API (enable/disable from toolbar)
 - Console action to send `Ctrl+C` for graceful interruption
 - Auto-restart support for crashed/exited processes
 - Run-on-start support
@@ -46,6 +48,23 @@ dotnet run --project .\CmdHub.csproj
 	 - `Use PowerShell`: run command via `powershell.exe` (useful for shell aliases/functions)
 3. Use row buttons to control each process.
 4. Click `Console` to inspect full output.
+5. Click `API: Off` in toolbar to enable local API.
+
+## API Endpoints
+
+When enabled, API base URL is:
+
+`http://localhost:5480/api`
+
+- `GET /api/health`
+- `GET /api/processes`
+- `GET /api/processes/{processId}/logs`
+
+`logs` response contains `logs` as a string array (one item per log line).
+
+`logs` endpoint query options:
+
+- `tail` (optional, number of chars returned from end of log, default `16000`, max `200000`)
 
 ## Configuration
 
@@ -53,17 +72,23 @@ CmdHub stores config at:
 
 `%APPDATA%\CmdHub\config.json`
 
-Command entry shape:
+Config shape:
 
 ```json
 {
-	"id": "guid",
-	"name": "My API",
-	"command": "dotnet run --project MyApi.csproj",
-	"workingDirectory": "C:\\path\\to\\project",
-	"autoRestart": true,
-	"runOnStart": false,
-	"usePowerShell": false
+	"apiEnabled": false,
+	"apiPort": 5480,
+	"commands": [
+		{
+			"id": "guid",
+			"name": "My API",
+			"command": "dotnet run --project MyApi.csproj",
+			"workingDirectory": "C:\\path\\to\\project",
+			"autoRestart": true,
+			"runOnStart": false,
+			"usePowerShell": false
+		}
+	]
 }
 ```
 

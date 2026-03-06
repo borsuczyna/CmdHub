@@ -46,6 +46,8 @@ public class ConfigService
 
     private static AppConfig CreateDefault() => new()
     {
+        ApiEnabled = false,
+        ApiPort = 5480,
         Commands = new List<CommandEntry>
         {
             new()

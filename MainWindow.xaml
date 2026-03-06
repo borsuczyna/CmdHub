@@ -194,6 +194,11 @@
                     <Button Content="＋  New Command"
                             Style="{StaticResource ToolbarButton}"
                             Command="{Binding NewCommandCommand}"/>
+                        <Button Content="{Binding ApiStatusText}"
+                            Style="{StaticResource ToolbarButton}"
+                            Command="{Binding ToggleApiCommand}"
+                            ToolTip="{Binding ApiHintText}"
+                            Margin="10,0,0,0"/>
                 </StackPanel>
                 <TextBlock Text="{Binding RunningCount}"
                            Foreground="#858585" FontSize="12"

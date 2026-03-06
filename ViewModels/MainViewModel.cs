@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -15,6 +16,7 @@ public class MainViewModel : BaseViewModel
 {
     private readonly ConfigService _configService;
     private readonly AppConfig _config;
+    private readonly ApiHostService _apiHostService;
     private CommandViewModel? _selectedCommand;
 
     public ObservableCollection<CommandViewModel> Commands { get; } = new();
@@ -34,7 +36,30 @@ public class MainViewModel : BaseViewModel
         }
     }
 
+    public bool ApiEnabled
+    {
+        get => _config.ApiEnabled;
+        private set
+        {
+            if (_config.ApiEnabled == value)
+            {
+                return;
+            }
+
+            _config.ApiEnabled = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ApiStatusText));
+            OnPropertyChanged(nameof(ApiHintText));
+        }
+    }
+
+    public string ApiStatusText => ApiEnabled ? $"API: On ({_config.ApiPort})" : "API: Off";
+    public string ApiHintText => ApiEnabled
+        ? $"Click to disable API. Base URL: http://localhost:{_config.ApiPort}/api"
+        : $"Click to enable API at http://localhost:{_config.ApiPort}/api";
+
     public ICommand NewCommandCommand { get; }
+    public ICommand ToggleApiCommand { get; }
     public ICommand OpenConsoleCommand { get; }
     public ICommand OpenPerformanceCommand { get; }
     public ICommand EditCommandCommand { get; }
@@ -44,19 +69,70 @@ public class MainViewModel : BaseViewModel
     {
         _configService = configService;
         _config = configService.Load();
+        _apiHostService = new ApiHostService(GetCommandsSnapshotForApi, _config.ApiPort);
 
         foreach (var entry in _config.Commands)
             AddCommandViewModel(new CommandViewModel(entry));
 
         NewCommandCommand = new RelayCommand(OpenNewCommandDialog);
+        ToggleApiCommand = new RelayCommand(ToggleApiEnabled);
         OpenConsoleCommand = new RelayCommand(p => OpenConsole(p as CommandViewModel));
         OpenPerformanceCommand = new RelayCommand(p => OpenPerformance(p as CommandViewModel));
         EditCommandCommand = new RelayCommand(p => OpenEditDialog(p as CommandViewModel));
         DeleteCommandCommand = new RelayCommand(p => DeleteCommand(p as CommandViewModel));
 
+        if (_config.ApiEnabled)
+        {
+            TryStartApiHost();
+        }
+
         // Start commands with RunOnStart
         foreach (var cmd in Commands.Where(c => c.RunOnStart))
             cmd.Start();
+    }
+
+    private IReadOnlyList<CommandViewModel> GetCommandsSnapshotForApi()
+    {
+        var app = WpfApp.Current;
+        if (app == null)
+        {
+            return Array.Empty<CommandViewModel>();
+        }
+
+        return app.Dispatcher.Invoke(() => Commands.ToList());
+    }
+
+    private void ToggleApiEnabled()
+    {
+        if (ApiEnabled)
+        {
+            _apiHostService.Stop();
+            ApiEnabled = false;
+            SaveConfig();
+            return;
+        }
+
+        TryStartApiHost();
+    }
+
+    private void TryStartApiHost()
+    {
+        try
+        {
+            _apiHostService.Start();
+            ApiEnabled = true;
+            SaveConfig();
+        }
+        catch (Exception ex)
+        {
+            ApiEnabled = false;
+            SaveConfig();
+            WpfMessageBox.Show(
+                $"Could not start API host on port {_config.ApiPort}:\n{ex.Message}",
+                "API Host Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
     private void AddCommandViewModel(CommandViewModel vm)
@@ -192,6 +268,8 @@ public class MainViewModel : BaseViewModel
 
     public void Cleanup()
     {
+        _apiHostService.Stop();
+
         foreach (var cmd in Commands)
         {
             cmd.Stop();
