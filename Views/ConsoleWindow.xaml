@@ -63,6 +63,12 @@
                         x:Name="BtnStop"
                         Margin="2,0"
                         Click="BtnStop_Click"/>
+                <Button Content="Ctrl+C"
+                    Style="{StaticResource ToolBtn}"
+                    x:Name="BtnCtrlC"
+                    Margin="2,0"
+                    ToolTip="Send Ctrl+C to the running process"
+                    Click="BtnCtrlC_Click"/>
                 <Button Content="↺ Restart"
                         Style="{StaticResource ToolBtn}"
                         x:Name="BtnRestart"

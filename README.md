@@ -9,6 +9,7 @@ It is designed for workflows where you need several long-running commands (APIs,
 - Manage multiple commands in one UI
 - Per-command actions: Start, Stop, Restart, Open Console, Edit, Delete
 - Live output preview in a dedicated console window
+- Console action to send `Ctrl+C` for graceful interruption
 - Auto-restart support for crashed/exited processes
 - Run-on-start support
 - Minimize to system tray with tray context menu
@@ -69,6 +70,7 @@ Command entry shape:
 ## Process Behavior
 
 - `Stop` attempts to terminate the full process tree.
+- `Ctrl+C` in console sends an interrupt through standard input (best effort graceful stop).
 - App exit also triggers cleanup for all managed processes.
 - If a process ignores normal termination, CmdHub uses a forced tree-kill fallback on Windows.
 

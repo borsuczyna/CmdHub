@@ -88,6 +88,7 @@ public partial class ConsoleWindow : Window
         TxtStatusBar.Text = $"{CommandVm.Name}  —  {CommandVm.StatusText}";
         BtnStart.IsEnabled = CommandVm.CanStart;
         BtnStop.IsEnabled = CommandVm.CanStop;
+        BtnCtrlC.IsEnabled = CommandVm.CanStop;
     }
 
     private void AppendChunk(string text)
@@ -350,6 +351,18 @@ public partial class ConsoleWindow : Window
 
     private void BtnStop_Click(object sender, RoutedEventArgs e)
         => CommandVm.Stop();
+
+    private void BtnCtrlC_Click(object sender, RoutedEventArgs e)
+    {
+        if (CommandVm.SendCtrlC())
+        {
+            TxtStatusBar.Text = $"{CommandVm.Name}  —  Sent Ctrl+C";
+        }
+        else
+        {
+            TxtStatusBar.Text = $"{CommandVm.Name}  —  Ctrl+C not sent";
+        }
+    }
 
     private void BtnRestart_Click(object sender, RoutedEventArgs e)
         => CommandVm.Restart();

@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -175,6 +177,171 @@ public class CommandViewModel : BaseViewModel, IDisposable
         KillProcess();
     }
 
+    public bool SendCtrlC()
+    {
+        var process = _process;
+        if (process == null)
+        {
+            AppendOutput($"[{DateTime.Now:HH:mm:ss}] [ERR] No running process to interrupt.\r\n");
+            return false;
+        }
+
+        try
+        {
+            if (process.HasExited)
+            {
+                AppendOutput($"[{DateTime.Now:HH:mm:ss}] [ERR] Process already exited.\r\n");
+                return false;
+            }
+
+            // Treat Ctrl+C as an intentional user stop to avoid auto-restart loops.
+            _manualStop = true;
+            _restarting = false;
+            _restartCts?.Cancel();
+
+            bool attempted = TrySendCtrlCViaStdin(process);
+
+            // If stdin Ctrl+C did not stop it, try a native Windows console Ctrl+C event.
+            if (!process.WaitForExit(400) && OperatingSystem.IsWindows())
+            {
+                attempted |= TrySendWindowsCtrlC(process.Id);
+            }
+
+            if (!attempted)
+            {
+                AppendOutput($"[{DateTime.Now:HH:mm:ss}] [ERR] Could not deliver Ctrl+C to process.\r\n");
+                return false;
+            }
+
+            if (process.WaitForExit(1500))
+            {
+                AppendOutput($"[{DateTime.Now:HH:mm:ss}] [CmdHub] Ctrl+C delivered; process is stopping.\r\n");
+                return true;
+            }
+
+            AppendOutput($"[{DateTime.Now:HH:mm:ss}] [WARN] Ctrl+C sent, but process is still running.\r\n");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            AppendOutput($"[{DateTime.Now:HH:mm:ss}] [ERR] Failed to send Ctrl+C: {ex.Message}\r\n");
+            return false;
+        }
+    }
+
+    private static bool TrySendCtrlCViaStdin(Process process)
+    {
+        try
+        {
+            process.StandardInput.Write('\x3');
+            process.StandardInput.Flush();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool TrySendWindowsCtrlC(int pid)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return false;
+        }
+
+        bool attached = false;
+        bool ignoreSet = false;
+
+        try
+        {
+            FreeConsole();
+            if (!AttachConsole((uint)pid))
+            {
+                return false;
+            }
+
+            attached = true;
+
+            if (!SetConsoleCtrlHandler(null, true))
+            {
+                return false;
+            }
+
+            ignoreSet = true;
+
+            if (!GenerateConsoleCtrlEvent(CtrlCEvent, 0))
+            {
+                return false;
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (ignoreSet)
+            {
+                SetConsoleCtrlHandler(null, false);
+            }
+
+            if (attached)
+            {
+                FreeConsole();
+            }
+        }
+    }
+
+    private const uint CtrlCEvent = 0;
+    private static readonly IntPtr InvalidHandleValue = new(-1);
+    private const uint Th32csSnapProcess = 0x00000002;
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    private struct ProcessEntry32
+    {
+        public uint dwSize;
+        public uint cntUsage;
+        public uint th32ProcessID;
+        public IntPtr th32DefaultHeapID;
+        public uint th32ModuleID;
+        public uint cntThreads;
+        public uint th32ParentProcessID;
+        public int pcPriClassBase;
+        public uint dwFlags;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+        public string szExeFile;
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool AttachConsole(uint dwProcessId);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool FreeConsole();
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GenerateConsoleCtrlEvent(uint dwCtrlEvent, uint dwProcessGroupId);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetConsoleCtrlHandler(ConsoleCtrlDelegate? handlerRoutine, bool add);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr CreateToolhelp32Snapshot(uint dwFlags, uint th32ProcessID);
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    private static extern bool Process32First(IntPtr hSnapshot, ref ProcessEntry32 lppe);
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    private static extern bool Process32Next(IntPtr hSnapshot, ref ProcessEntry32 lppe);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(IntPtr hObject);
+
+    private delegate bool ConsoleCtrlDelegate(uint ctrlType);
+
     public void Restart()
     {
         _restarting = true;
@@ -200,38 +367,135 @@ public class CommandViewModel : BaseViewModel, IDisposable
         var process = _process;
         if (process == null) return;
 
+        int rootPid = 0;
+        try { rootPid = process.Id; } catch { }
+
         try
         {
-            if (process.HasExited)
+            if (!process.HasExited)
             {
-                return;
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+                catch (PlatformNotSupportedException)
+                {
+                    process.Kill();
+                }
+                catch (InvalidOperationException)
+                {
+                    // Already exited between checks.
+                }
+
+                // Give the process a moment to exit cleanly after kill.
+                if (!process.WaitForExit(2500))
+                {
+                    TryTaskKillTree(process.Id);
+                    process.WaitForExit(2500);
+                }
             }
 
-            try
+            if (OperatingSystem.IsWindows() && rootPid > 0)
             {
-                process.Kill(entireProcessTree: true);
-            }
-            catch (PlatformNotSupportedException)
-            {
-                process.Kill();
-            }
-            catch (InvalidOperationException)
-            {
-                // Already exited between checks.
-                return;
-            }
-
-            // Give the process a moment to exit cleanly after kill.
-            if (!process.WaitForExit(2500))
-            {
-                TryTaskKillTree(process.Id);
-                process.WaitForExit(2500);
+                KillDescendantsWindows(rootPid);
             }
         }
         catch (Exception ex)
         {
             AppendOutput($"[{DateTime.Now:HH:mm:ss}] [ERR] Failed to kill process: {ex.Message}\r\n");
         }
+    }
+
+    private static void KillDescendantsWindows(int rootPid)
+    {
+        var descendants = GetDescendantProcessIdsWindows(rootPid);
+        foreach (var pid in descendants)
+        {
+            try
+            {
+                using var p = Process.GetProcessById(pid);
+                try
+                {
+                    p.Kill(entireProcessTree: true);
+                }
+                catch (PlatformNotSupportedException)
+                {
+                    p.Kill();
+                }
+
+                if (!p.WaitForExit(1500))
+                {
+                    TryTaskKillTree(pid);
+                }
+            }
+            catch
+            {
+                // Process may already be gone.
+            }
+        }
+    }
+
+    private static List<int> GetDescendantProcessIdsWindows(int rootPid)
+    {
+        var result = new List<int>();
+        var parentByPid = GetParentProcessMapWindows();
+        var queue = new Queue<int>();
+        queue.Enqueue(rootPid);
+
+        while (queue.Count > 0)
+        {
+            int parentPid = queue.Dequeue();
+            foreach (var kvp in parentByPid)
+            {
+                if (kvp.Value != parentPid)
+                {
+                    continue;
+                }
+
+                int childPid = kvp.Key;
+                if (result.Contains(childPid))
+                {
+                    continue;
+                }
+
+                result.Add(childPid);
+                queue.Enqueue(childPid);
+            }
+        }
+
+        result.Reverse();
+        return result;
+    }
+
+    private static Dictionary<int, int> GetParentProcessMapWindows()
+    {
+        var map = new Dictionary<int, int>();
+        IntPtr snapshot = CreateToolhelp32Snapshot(Th32csSnapProcess, 0);
+        if (snapshot == IntPtr.Zero || snapshot == InvalidHandleValue)
+        {
+            return map;
+        }
+
+        try
+        {
+            var entry = new ProcessEntry32 { dwSize = (uint)Marshal.SizeOf<ProcessEntry32>() };
+            if (!Process32First(snapshot, ref entry))
+            {
+                return map;
+            }
+
+            do
+            {
+                map[(int)entry.th32ProcessID] = (int)entry.th32ParentProcessID;
+            }
+            while (Process32Next(snapshot, ref entry));
+        }
+        finally
+        {
+            CloseHandle(snapshot);
+        }
+
+        return map;
     }
 
     private static void TryTaskKillTree(int pid)
