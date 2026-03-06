@@ -290,9 +290,15 @@
 
                 <!-- Actions -->
                 <DataGridTemplateColumn Header="ACTIONS" Width="370" CanUserSort="False">
+                    <DataGridTemplateColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Padding" Value="4"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        </Style>
+                    </DataGridTemplateColumn.CellStyle>
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0" HorizontalAlignment="Right">
                                 <Button Content="▶ Start"
                                         Style="{StaticResource StartIconButton}"
                                         Command="{Binding StartCommand}"
