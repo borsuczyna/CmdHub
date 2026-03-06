@@ -1,0 +1,23 @@
+# Build outputs
+bin/
+obj/
+
+# Visual Studio files
+*.user
+*.suo
+.vs/
+*.vsidx
+*.sln.docstates
+
+# NuGet
+packages/
+*.nupkg
+
+# Rider IDE
+.idea/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
