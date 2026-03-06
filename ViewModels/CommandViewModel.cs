@@ -380,15 +380,9 @@ public class CommandViewModel : BaseViewModel, IDisposable
 
             bool attempted = TrySendCtrlCViaStdin(process);
 
-            // If stdin Ctrl+C did not stop it, try a native Windows console Ctrl+C event.
-            if (!process.WaitForExit(400) && OperatingSystem.IsWindows())
-            {
-                attempted |= TrySendWindowsCtrlC(process.Id);
-            }
-
             if (!attempted)
             {
-                AppendOutput($"[{DateTime.Now:HH:mm:ss}] [ERR] Could not deliver Ctrl+C to process.\r\n");
+                AppendOutput($"[{DateTime.Now:HH:mm:ss}] [ERR] Could not deliver Ctrl+C via stdin.\r\n");
                 return false;
             }
 
@@ -398,7 +392,16 @@ public class CommandViewModel : BaseViewModel, IDisposable
                 return true;
             }
 
-            AppendOutput($"[{DateTime.Now:HH:mm:ss}] [WARN] Ctrl+C sent, but process is still running.\r\n");
+            AppendOutput($"[{DateTime.Now:HH:mm:ss}] [WARN] Ctrl+C sent, but process is still running. Applying Stop fallback...\r\n");
+            KillProcess();
+
+            if (process.WaitForExit(2500))
+            {
+                AppendOutput($"[{DateTime.Now:HH:mm:ss}] [CmdHub] Stop fallback completed.\r\n");
+                return true;
+            }
+
+            AppendOutput($"[{DateTime.Now:HH:mm:ss}] [ERR] Stop fallback did not terminate the process.\r\n");
             return false;
         }
         catch (Exception ex)
@@ -412,6 +415,21 @@ public class CommandViewModel : BaseViewModel, IDisposable
     {
         try
         {
+            if (process.HasExited)
+            {
+                return false;
+            }
+
+            if (!process.StartInfo.RedirectStandardInput)
+            {
+                return false;
+            }
+
+            if (!process.StandardInput.BaseStream.CanWrite)
+            {
+                return false;
+            }
+
             process.StandardInput.Write('\x3');
             process.StandardInput.Flush();
             return true;
@@ -422,59 +440,6 @@ public class CommandViewModel : BaseViewModel, IDisposable
         }
     }
 
-    private static bool TrySendWindowsCtrlC(int pid)
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return false;
-        }
-
-        bool attached = false;
-        bool ignoreSet = false;
-
-        try
-        {
-            FreeConsole();
-            if (!AttachConsole((uint)pid))
-            {
-                return false;
-            }
-
-            attached = true;
-
-            if (!SetConsoleCtrlHandler(null, true))
-            {
-                return false;
-            }
-
-            ignoreSet = true;
-
-            if (!GenerateConsoleCtrlEvent(CtrlCEvent, 0))
-            {
-                return false;
-            }
-
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-        finally
-        {
-            if (ignoreSet)
-            {
-                SetConsoleCtrlHandler(null, false);
-            }
-
-            if (attached)
-            {
-                FreeConsole();
-            }
-        }
-    }
-
-    private const uint CtrlCEvent = 0;
     private static readonly IntPtr InvalidHandleValue = new(-1);
     private const uint Th32csSnapProcess = 0x00000002;
 
@@ -496,18 +461,6 @@ public class CommandViewModel : BaseViewModel, IDisposable
     }
 
     [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool AttachConsole(uint dwProcessId);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool FreeConsole();
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool GenerateConsoleCtrlEvent(uint dwCtrlEvent, uint dwProcessGroupId);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool SetConsoleCtrlHandler(ConsoleCtrlDelegate? handlerRoutine, bool add);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
     private static extern IntPtr CreateToolhelp32Snapshot(uint dwFlags, uint th32ProcessID);
 
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
@@ -518,8 +471,6 @@ public class CommandViewModel : BaseViewModel, IDisposable
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool CloseHandle(IntPtr hObject);
-
-    private delegate bool ConsoleCtrlDelegate(uint ctrlType);
 
     public void Restart()
     {
