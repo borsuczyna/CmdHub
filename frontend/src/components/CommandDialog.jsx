@@ -38,50 +38,58 @@ export default function CommandDialog({ process, open, onClose, onSave }) {
 
   return (
     <div className="dialog-backdrop" onClick={onClose}>
-      <form className="dialog" onSubmit={submit} onClick={(event) => event.stopPropagation()}>
+      <form className="dialog" onSubmit={submit} onClick={(e) => e.stopPropagation()}>
         <h4>{process ? "Edit Command" : "New Command"}</h4>
 
-        <label>Name</label>
-        <input value={form.name} onChange={(event) => update("name", event.target.value)} required />
+        <div className="form-group">
+          <label className="form-label">Name</label>
+          <input className="form-input" value={form.name} onChange={(e) => update("name", e.target.value)} required />
+        </div>
 
-        <label>Command</label>
-        <input className="mono" value={form.command} onChange={(event) => update("command", event.target.value)} required />
+        <div className="form-group">
+          <label className="form-label">Command</label>
+          <input className="form-input mono" value={form.command} onChange={(e) => update("command", e.target.value)} required />
+        </div>
 
-        <label>Working Directory</label>
-        <input className="mono" value={form.workingDirectory} onChange={(event) => update("workingDirectory", event.target.value)} />
+        <div className="form-group">
+          <label className="form-label">Working Directory</label>
+          <input className="form-input mono" value={form.workingDirectory} onChange={(e) => update("workingDirectory", e.target.value)} />
+        </div>
 
-        <div className="mini-grid">
-          <div>
-            <span>Run Every</span>
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Run Every (min)</label>
             <input
+              className="form-input"
               type="number"
               min="1"
               value={form.runEveryInterval}
-              onChange={(event) => update("runEveryInterval", Number(event.target.value || 5))}
+              onChange={(e) => update("runEveryInterval", Number(e.target.value || 5))}
             />
           </div>
-          <div>
-            <span>Restart Every</span>
+          <div className="form-group">
+            <label className="form-label">Restart Every (min)</label>
             <input
+              className="form-input"
               type="number"
               min="1"
               value={form.restartEveryInterval}
-              onChange={(event) => update("restartEveryInterval", Number(event.target.value || 5))}
+              onChange={(e) => update("restartEveryInterval", Number(e.target.value || 5))}
             />
           </div>
         </div>
 
         <div className="checkbox-grid">
-          <label className="checkbox-line"><input type="checkbox" checked={form.autoRestart} onChange={(event) => update("autoRestart", event.target.checked)} />Auto restart</label>
-          <label className="checkbox-line"><input type="checkbox" checked={form.runOnStart} onChange={(event) => update("runOnStart", event.target.checked)} />Run on start</label>
-          <label className="checkbox-line"><input type="checkbox" checked={form.usePowerShell} onChange={(event) => update("usePowerShell", event.target.checked)} />Use PowerShell</label>
-          <label className="checkbox-line"><input type="checkbox" checked={form.runEveryEnabled} onChange={(event) => update("runEveryEnabled", event.target.checked)} />Enable run every</label>
-          <label className="checkbox-line"><input type="checkbox" checked={form.restartEveryEnabled} onChange={(event) => update("restartEveryEnabled", event.target.checked)} />Enable restart every</label>
+          <label className="checkbox-label"><input type="checkbox" checked={form.autoRestart} onChange={(e) => update("autoRestart", e.target.checked)} /> Auto restart</label>
+          <label className="checkbox-label"><input type="checkbox" checked={form.runOnStart} onChange={(e) => update("runOnStart", e.target.checked)} /> Run on start</label>
+          <label className="checkbox-label"><input type="checkbox" checked={form.usePowerShell} onChange={(e) => update("usePowerShell", e.target.checked)} /> Use PowerShell</label>
+          <label className="checkbox-label"><input type="checkbox" checked={form.runEveryEnabled} onChange={(e) => update("runEveryEnabled", e.target.checked)} /> Enable run every</label>
+          <label className="checkbox-label"><input type="checkbox" checked={form.restartEveryEnabled} onChange={(e) => update("restartEveryEnabled", e.target.checked)} /> Enable restart every</label>
         </div>
 
-        <div className="row-actions">
-          <button className="ghost" type="button" onClick={onClose}>Cancel</button>
-          <button className="primary" type="submit">Save</button>
+        <div className="dialog-actions">
+          <button className="btn btn-ghost" type="button" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" type="submit">Save</button>
         </div>
       </form>
     </div>

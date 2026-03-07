@@ -4,54 +4,64 @@ function Sparkline({ points }) {
   }
 
   const max = Math.max(1, ...points);
-  const width = 600;
-  const height = 140;
+  const w = 600;
+  const h = 160;
 
   const segments = points
-    .map((value, index) => {
-      const x = (index / Math.max(points.length - 1, 1)) * width;
-      const y = height - (value / max) * height;
+    .map((v, i) => {
+      const x = (i / Math.max(points.length - 1, 1)) * w;
+      const y = h - (v / max) * h;
       return `${x},${y}`;
     })
     .join(" ");
 
   return (
-    <svg className="sparkline" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
-      <polyline fill="none" stroke="currentColor" strokeWidth="3" points={segments} />
+    <svg className="sparkline" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+      <polyline fill="none" stroke="currentColor" strokeWidth="2.5" points={segments} />
     </svg>
   );
 }
 
-export default function PerformanceView({ selected, cpuHistory, onSelect }) {
+export default function PerformanceView({ processes, selected, selectedId, cpuHistory, onSelect }) {
   return (
-    <section className="view">
-      <div className="view-header">
-        <h3>Performance</h3>
-        <select
-          value={selected?.id || ""}
-          onChange={(event) => onSelect(event.target.value)}
-          className="process-select"
-        >
-          <option value="">Select process</option>
-          {cpuHistory.available.map((process) => (
-            <option key={process.id} value={process.id}>{process.name}</option>
+    <div className="content-view">
+      <div className="content-header">
+        <div>
+          <h1 className="page-title">Performance</h1>
+          <p className="page-subtitle">Monitor resource usage</p>
+        </div>
+      </div>
+
+      <div className="perf-layout">
+        <aside className="process-sidebar">
+          {processes.map((p) => (
+            <button
+              key={p.id}
+              className={`process-sidebar-item ${selectedId === p.id ? "active" : ""}`}
+              onClick={() => onSelect(p.id)}
+            >
+              <strong>{p.name}</strong>
+              <span>{p.status}</span>
+            </button>
           ))}
-        </select>
-      </div>
+        </aside>
 
-      <div className="mini-grid metrics">
-        <div><span>Status</span><strong>{selected?.status || "-"}</strong></div>
-        <div><span>CPU</span><strong>{selected?.cpuPercent ?? "-"}%</strong></div>
-        <div><span>PID</span><strong>{selected?.pid ?? "-"}</strong></div>
-        <div><span>Working Set</span><strong>{selected?.workingSetDisplay || "-"}</strong></div>
-        <div><span>Private Memory</span><strong>{selected?.privateMemoryDisplay || "-"}</strong></div>
-        <div><span>Threads / Handles</span><strong>{selected ? `${selected.threadCount ?? "-"} / ${selected.handleCount ?? "-"}` : "-"}</strong></div>
-      </div>
+        <div className="perf-main">
+          <div className="perf-grid">
+            <div className="metric-card"><span className="metric-label">Status</span><span className="metric-value">{selected?.status || "-"}</span></div>
+            <div className="metric-card"><span className="metric-label">CPU</span><span className="metric-value">{selected?.cpuPercent ?? "-"}%</span></div>
+            <div className="metric-card"><span className="metric-label">PID</span><span className="metric-value">{selected?.pid ?? "-"}</span></div>
+            <div className="metric-card"><span className="metric-label">Working Set</span><span className="metric-value">{selected?.workingSetDisplay || "-"}</span></div>
+            <div className="metric-card"><span className="metric-label">Private Memory</span><span className="metric-value">{selected?.privateMemoryDisplay || "-"}</span></div>
+            <div className="metric-card"><span className="metric-label">Threads / Handles</span><span className="metric-value">{selected ? `${selected.threadCount ?? "-"} / ${selected.handleCount ?? "-"}` : "-"}</span></div>
+          </div>
 
-      <div className="chart-panel">
-        <p className="muted">CPU trend (latest 60 samples)</p>
-        <Sparkline points={cpuHistory.points} />
+          <div className="chart-container">
+            <p className="chart-title">CPU trend (latest 60 samples)</p>
+            <Sparkline points={cpuHistory.points} />
+          </div>
+        </div>
       </div>
-    </section>
+    </div>
   );
 }

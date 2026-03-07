@@ -1,15 +1,29 @@
-export default function ShellHeader({ runningCount, apiBase, onLogout }) {
+export default function ShellHeader({
+  runningCount,
+  apiPort,
+  panelPort,
+  onCreate,
+  onSettings,
+  onLogout
+}) {
   return (
     <header className="shell-header">
-      <div>
-        <p className="eyebrow">CmdHub</p>
-        <h2>Remote Operations Console</h2>
+      <div className="brand-box">
+        <div className="brand-mark">⚙</div>
+        <h1>CmdHub</h1>
+      </div>
+
+      <div className="header-actions">
+        <button className="primary" onClick={onCreate}>+ New Command</button>
+        <button className="remote-pill" onClick={onSettings}>
+          Remote: On (API {apiPort ?? "-"} | Panel {panelPort ?? "-"})
+        </button>
+        <button className="ghost" onClick={onSettings}>Settings</button>
       </div>
 
       <div className="header-meta">
-        <span className="pill">API {apiBase}</span>
-        <span className="pill">{runningCount} running</span>
-        <button className="ghost" onClick={onLogout}>
+        <span>{runningCount} processes running</span>
+        <button className="logout-link" onClick={onLogout}>
           Sign Out
         </button>
       </div>

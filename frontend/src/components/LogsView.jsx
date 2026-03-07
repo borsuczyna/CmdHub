@@ -10,58 +10,60 @@ export default function LogsView({
   onRefresh,
   onClear
 }) {
-  const selected = processes.find((process) => process.id === selectedId) || null;
+  const selected = processes.find((p) => p.id === selectedId) || null;
 
   return (
-    <section className="view">
-      <div className="view-header">
-        <h3>Logs</h3>
-        <div className="row-actions">
+    <div className="content-view">
+      <div className="content-header">
+        <div>
+          <h1 className="page-title">Logs</h1>
+          <p className="page-subtitle">View console output from your processes</p>
+        </div>
+        <div className="header-actions">
           <input
-            className="tail-input"
+            className="form-input"
+            style={{ width: 100 }}
             type="number"
             min="100"
             max="200000"
             value={tail}
-            onChange={(event) => onTailChange(Number(event.target.value || 16000))}
+            onChange={(e) => onTailChange(Number(e.target.value || 16000))}
           />
-          <label className="checkbox-line compact">
+          <label className="checkbox-label">
             <input
               type="checkbox"
               checked={autoRefresh}
-              onChange={(event) => onAutoRefreshChange(event.target.checked)}
+              onChange={(e) => onAutoRefreshChange(e.target.checked)}
             />
             Auto refresh
           </label>
-          <button className="ghost" onClick={onRefresh}>Refresh</button>
-          <button className="bad" onClick={onClear} disabled={!selectedId}>Clear Logs</button>
+          <button className="btn btn-ghost" onClick={onRefresh}>Refresh</button>
+          <button className="btn btn-danger" onClick={onClear} disabled={!selectedId}>Clear</button>
         </div>
       </div>
 
       <div className="logs-layout">
-        <aside className="process-list">
-          {processes.map((process) => (
+        <aside className="process-sidebar">
+          {processes.map((p) => (
             <button
-              key={process.id}
-              className={selectedId === process.id ? "process-list-item active" : "process-list-item"}
-              onClick={() => onSelect(process.id)}
+              key={p.id}
+              className={`process-sidebar-item ${selectedId === p.id ? "active" : ""}`}
+              onClick={() => onSelect(p.id)}
             >
-              <strong>{process.name}</strong>
-              <span>{process.status}</span>
+              <strong>{p.name}</strong>
+              <span>{p.status}</span>
             </button>
           ))}
         </aside>
 
-        <article className="log-panel">
-          <div className="log-head">
-            <div>
-              <h4>{selected ? selected.name : "No process selected"}</h4>
-              <p className="muted">{selected ? selected.command : "Choose a process from the left."}</p>
-            </div>
+        <div className="log-panel">
+          <div className="log-panel-header">
+            <h4>{selected ? selected.name : "No process selected"}</h4>
+            <p>{selected ? selected.command : "Choose a process from the sidebar."}</p>
           </div>
-          <pre className="mono log-body">{logs || "No logs yet."}</pre>
-        </article>
+          <pre className="log-body">{logs || "No logs yet."}</pre>
+        </div>
       </div>
-    </section>
+    </div>
   );
 }

@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { apiRequest, loadPanelConfig } from "./api";
 import LoginScreen from "./components/LoginScreen";
-import ShellHeader from "./components/ShellHeader";
-import Tabs from "./components/Tabs";
+import Sidebar from "./components/Sidebar";
 import ProcessesView from "./components/ProcessesView";
 import LogsView from "./components/LogsView";
 import PerformanceView from "./components/PerformanceView";
@@ -23,6 +22,7 @@ function formatBytes(bytes) {
 
 export default function App() {
   const [apiPort, setApiPort] = useState(null);
+  const [panelPort, setPanelPort] = useState(null);
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
@@ -38,6 +38,12 @@ export default function App() {
   const [cpuPoints, setCpuPoints] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogProcess, setDialogProcess] = useState(null);
+
+  // Refs to avoid stale closures in the process-refresh interval
+  const selectedLogsIdRef = useRef(selectedLogsId);
+  const selectedPerfIdRef = useRef(selectedPerfId);
+  selectedLogsIdRef.current = selectedLogsId;
+  selectedPerfIdRef.current = selectedPerfId;
 
   const apiBase = useMemo(() => {
     if (!apiPort) return "";
@@ -58,6 +64,7 @@ export default function App() {
     loadPanelConfig()
       .then((config) => {
         setApiPort(config.apiPort);
+        setPanelPort(config.panelPort ?? null);
       })
       .catch((error) => {
         setAuthError(error.message);
@@ -138,11 +145,11 @@ export default function App() {
     const list = response?.processes || [];
     setProcesses(list);
 
-    if (!selectedLogsId && list.length) {
+    if (!selectedLogsIdRef.current && list.length) {
       setSelectedLogsId(list[0].id);
     }
 
-    if (!selectedPerfId && list.length) {
+    if (!selectedPerfIdRef.current && list.length) {
       setSelectedPerfId(list[0].id);
     }
   }
@@ -207,77 +214,86 @@ export default function App() {
   }
 
   return (
-    <main className="app-shell">
-      <ShellHeader
-        runningCount={processes.filter((item) => item.isRunning).length}
-        apiBase={apiBase}
+    <div className="app-layout">
+      <Sidebar
+        activeTab={tab}
+        onTabChange={setTab}
+        apiPort={apiPort}
+        panelPort={panelPort}
+        onSettings={() => setToast("Settings are managed in the desktop app.")}
         onLogout={logout}
       />
 
-      <Tabs value={tab} onChange={setTab} />
+      <main className="main-content">
+        {tab === "processes" ? (
+          <ProcessesView
+            processes={processes}
+            onCreate={() => {
+              setDialogProcess(null);
+              setDialogOpen(true);
+            }}
+            onRefresh={refreshProcesses}
+            onEdit={(process) => {
+              setDialogProcess(process);
+              setDialogOpen(true);
+            }}
+            onAction={commandAction}
+            onDelete={removeProcess}
+            onOpenLogs={(id) => {
+              setSelectedLogsId(id);
+              setTab("logs");
+            }}
+            onOpenPerformance={(id) => {
+              setSelectedPerfId(id);
+              setCpuPoints([]);
+              setTab("performance");
+            }}
+          />
+        ) : null}
 
-      {tab === "processes" ? (
-        <ProcessesView
-          processes={processes}
-          onRefresh={refreshProcesses}
-          onCreate={() => {
+        {tab === "logs" ? (
+          <LogsView
+            processes={processes}
+            selectedId={selectedLogsId}
+            logs={logsText}
+            tail={logsTail}
+            autoRefresh={logsAutoRefresh}
+            onSelect={(id) => {
+              setSelectedLogsId(id);
+              setLogsText("");
+            }}
+            onTailChange={setLogsTail}
+            onAutoRefreshChange={setLogsAutoRefresh}
+            onRefresh={refreshLogs}
+            onClear={clearLogs}
+          />
+        ) : null}
+
+        {tab === "performance" ? (
+          <PerformanceView
+            processes={processes}
+            selected={selectedPerf}
+            selectedId={selectedPerfId}
+            cpuHistory={{ points: cpuPoints, available: processes }}
+            onSelect={(id) => {
+              setSelectedPerfId(id);
+              setCpuPoints([]);
+            }}
+          />
+        ) : null}
+
+        <CommandDialog
+          process={dialogProcess}
+          open={dialogOpen}
+          onClose={() => {
+            setDialogOpen(false);
             setDialogProcess(null);
-            setDialogOpen(true);
           }}
-          onEdit={(process) => {
-            setDialogProcess(process);
-            setDialogOpen(true);
-          }}
-          onAction={commandAction}
-          onDelete={removeProcess}
-          onOpenLogs={(id) => {
-            setSelectedLogsId(id);
-            setTab("logs");
-          }}
-          onOpenPerformance={(id) => {
-            setSelectedPerfId(id);
-            setTab("performance");
-          }}
+          onSave={saveCommand}
         />
-      ) : null}
 
-      {tab === "logs" ? (
-        <LogsView
-          processes={processes}
-          selectedId={selectedLogsId}
-          logs={logsText}
-          tail={logsTail}
-          autoRefresh={logsAutoRefresh}
-          onSelect={(id) => {
-            setSelectedLogsId(id);
-            setLogsText("");
-          }}
-          onTailChange={setLogsTail}
-          onAutoRefreshChange={setLogsAutoRefresh}
-          onRefresh={refreshLogs}
-          onClear={clearLogs}
-        />
-      ) : null}
-
-      {tab === "performance" ? (
-        <PerformanceView
-          selected={selectedPerf}
-          cpuHistory={{ points: cpuPoints, available: processes }}
-          onSelect={setSelectedPerfId}
-        />
-      ) : null}
-
-      <CommandDialog
-        process={dialogProcess}
-        open={dialogOpen}
-        onClose={() => {
-          setDialogOpen(false);
-          setDialogProcess(null);
-        }}
-        onSave={saveCommand}
-      />
-
-      {toast ? <div className="toast">{toast}</div> : null}
-    </main>
+        {toast ? <div className="toast">{toast}</div> : null}
+      </main>
+    </div>
   );
 }

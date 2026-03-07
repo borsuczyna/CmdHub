@@ -9,32 +9,35 @@ export default function LoginScreen({ onLogin, error, loading }) {
 
   return (
     <section className="login-screen">
-      <div className="login-panel">
-        <p className="eyebrow">CmdHub</p>
-        <h1>Remote Control Panel</h1>
-        <p className="subhead">
-          Sign in with the control panel password from desktop settings.
-        </p>
+      <div className="login-card">
+        <div className="brand-icon" style={{ marginBottom: 16 }}>⌘</div>
+        <h1>CmdHub</h1>
+        <p className="subtitle">Sign in with your control panel password</p>
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            placeholder="Enter password"
-            required
-          />
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label" htmlFor="password">Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              className="form-input"
+              autoComplete="current-password"
+              placeholder="Enter password"
+              required
+            />
+          </div>
 
-          <label className="checkbox-line">
-            <input name="remember" type="checkbox" />
-            Remember on this browser
-          </label>
+          <div className="form-group">
+            <label className="checkbox-label">
+              <input name="remember" type="checkbox" />
+              Remember on this browser
+            </label>
+          </div>
 
-          {error ? <p className="error-text">{error}</p> : null}
+          {error ? <div className="error-box">{error}</div> : null}
 
-          <button className="primary" disabled={loading}>
+          <button className="btn btn-primary" style={{ width: "100%" }} disabled={loading}>
             {loading ? "Signing In..." : "Sign In"}
           </button>
         </form>

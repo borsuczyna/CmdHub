@@ -33,11 +33,50 @@ It is designed for workflows where you need several long-running commands (APIs,
 
 ## Build And Run
 
-From repository root:
+From repository root (`CmdHub/`):
+
+1. Restore .NET dependencies:
+
+```powershell
+dotnet restore .\CmdHub.sln
+```
+
+2. (Optional) Install frontend dependencies if this is your first build or `frontend/package-lock.json` changed:
+
+```powershell
+cd .\frontend
+npm install
+cd ..
+```
+
+3. Build the frontend only (optional sanity check):
+
+```powershell
+cd .\frontend
+npm run build
+cd ..
+```
+
+4. Build the full solution (this also builds and embeds the React frontend automatically):
 
 ```powershell
 dotnet build .\CmdHub.sln
+```
+
+5. Run the app:
+
+```powershell
 dotnet run --project .\CmdHub.csproj
+```
+
+Build configuration examples:
+
+```powershell
+# Debug
+dotnet build .\CmdHub.sln -c Debug
+
+# Release
+dotnet build .\CmdHub.sln -c Release
 ```
 
 ## Usage
