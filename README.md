@@ -24,6 +24,7 @@ It is designed for workflows where you need several long-running commands (APIs,
 <img width="1046" height="656" alt="image" src="https://github.com/user-attachments/assets/dd04617b-bbe5-4481-b822-4660a02c96d6" />
 <img width="869" height="545" alt="image" src="https://github.com/user-attachments/assets/8400be66-31da-4163-abef-2c690c6312be" />
 <img width="560" height="435" alt="image" src="https://github.com/user-attachments/assets/6e3d7576-0226-477a-962b-2936b535bdff" />
+<img width="1293" height="930" alt="image" src="https://github.com/user-attachments/assets/a8bb3296-764b-4afb-8dbd-3bbb3f494ad5" />
 
 ## Requirements
 
@@ -197,4 +198,5 @@ dotnet build .\CmdHub.sln
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
+
 
